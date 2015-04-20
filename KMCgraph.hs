@@ -10,22 +10,27 @@ module KMCgraph
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
-import GHC.Prim
+import           GHC.Prim
 import qualified FIFO                as F
+import           KMCtypes
+import           KMClattice          as KL
 
 -- Type synonmys, maybe newtype works better
-type AdjList    = V.Vector [Int]
-type StateArray = V.Vector (V.Vector Int)
 type DistArr    = V.Vector (Infinitable Int)
 type ColourArr  = V.Vector Colour
 type VMatrix a  = V.Vector (V.Vector a)
 
 -- data structures. Values for the search algorithm
 data Colour = White | Grey | Black deriving(Eq,Show)
+
+-- Infinite value for distances not calculated. Included
+-- so searches under a distance d do not return unsearched
+-- point. Avoids doing silly things with negative numbers
 data Infinitable a = Inf | Reg a deriving(Eq, Show)
 instance Ord a => Ord (Infinitable a) where
     compare Inf Inf = EQ
-    compare Inf _ = GT
+    compare Inf _   = GT
+    compare _   Inf = LT
     compare (Reg a) (Reg b) = compare a b
 
 --------------------
@@ -35,25 +40,26 @@ instance Ord a => Ord (Infinitable a) where
 --Breath first search until a target depth returning the indicies
 --of the vertices within that depth form the source point
 --MAIN
-breadthSearch :: AdjList -> Int -> Int -> V.Vector Int
-breadthSearch aL s td = 
-    let cA = setColour (V.replicate (V.length aL) White) s Grey
+breadthSearch :: Lattice -> Int -> Int -> V.Vector Int
+breadthSearch lattice s td = 
+    let aL = lGraph lattice
+        cA = setColour (V.replicate (V.length aL) White) s Grey
         dA = setDist (V.replicate (V.length aL) Inf ) s (Reg 0)
         q  = F.enqueue s F.empty
-    in whileBit aL q cA dA td
+    in whileBit lattice q cA dA td
 
 --COMPONENT
 --While the queue has stuff in it this calls itself recursively
-whileBit :: AdjList -> F.FIFO Int -> ColourArr -> DistArr -> Int -> V.Vector Int
-whileBit aL q cA dA td = 
+whileBit :: Lattice -> F.FIFO Int -> ColourArr -> DistArr -> Int -> V.Vector Int
+whileBit lattice q cA dA td = 
     let ((e:es),q') = F.remove 1 q
     in case e of
          Just u -> if (checkDist dA u) < Reg td
                       then 
-                          let nL            = getN aL u
+                          let nL            = KL.getNeighbours lattice u
                               (cA',dA',q'') = ifBit nL cA dA u q'
-                          in whileBit aL q'' cA' dA' td
-                      else whileBit aL q' cA dA td
+                          in whileBit lattice q'' cA' dA' td
+                      else whileBit lattice q' cA dA td
          Nothing -> V.findIndices p cA 
             where p x = (x /= White)
 
@@ -136,9 +142,6 @@ mkColourArr adjList = V.replicate (V.length adjList) White
 mkDistArr :: AdjList -> DistArr
 mkDistArr adjList = V.replicate (V.length adjList) (Inf :: Infinitable Int)
 --Fetch neighbours of the ith entry
-getN adjList i = adjList V.! i
-
-getS stateArray i = stateArray V.! i
 
 checkColour :: ColourArr -> Int -> Colour
 checkColour colourArr i = colourArr V.! i
@@ -167,28 +170,24 @@ getColumn j matrix = V.map (V.! j) matrix
 writeQ queue depth qs = V.modify (\v -> MV.write v depth qs) queue
 
 -- WORKING
-makeM :: StateArray -> StateArray -> AdjList -> AdjList -> VMatrix Int
-makeM sA_RG sA_SG aL_RG aL_SG =
+makeM :: Reaction -> Lattice -> VMatrix Int
+makeM reaction lattice = 
     onlyOnes statesCheck degreeCheck where
-        statesCheck = tsdMat sA_RG sA_SG
-        degreeCheck = degMat aL_RG aL_SG
+        statesCheck = tsdMat (iState reaction) (lState lattice)
+        degreeCheck = degMat (iGraph reaction) (lGraph lattice)
 
-extractSubgraph :: AdjList -> V.Vector Int -> AdjList
-extractSubgraph graph vs = V.fromList $ cleanNeighbours vs $ getManyN graph vs
-
-extractSubstate :: StateArray -> V.Vector Int -> StateArray
-extractSubstate sA vs = V.fromList $ getManyS sA vs
-
-getManyN adjList vs = map (getN adjList) $ V.toList vs
-
-getManyS stateArr vs = map (getS stateArr) $ V.toList vs
+extractSubLattice :: Lattice -> V.Vector Int -> Lattice
+extractSubLattice lat vs = Lattice subgraph subState where
+    vL = V.toList vs
+    subgraph = V.fromList $ cleanNeighbours vL $ KL.getManyNeighbours lat vL
+    subState = V.fromList $ KL.getManyState lat vL
 
 mappings :: V.Vector Int -> [[Int]] -> [[(Int,Int)]]
 mappings v rMs = map (zip vL) rMs where
     vL = V.toList v
 
-cleanNeighbours :: V.Vector Int -> [[Int]] -> [[Int]]
-cleanNeighbours vertices adjLists = map (L.intersect $ V.toList vertices) adjLists
+cleanNeighbours :: [Int] -> [Neighbours] -> [Neighbours]
+cleanNeighbours vertices adjLists = map (L.intersect vertices) adjLists
 
 -- Crudely just making N matricies of 1 or 0 for passing/failing
 -- the test. Then multiply elementwise to get the final m. Can be made
@@ -208,7 +207,7 @@ degMat aLrG aLsG =
         (\j -> checkDegrees aLrG aLsG i j)) where
             rows    = V.length aLrG
             columns = V.length aLsG
--- need to modify for wildcard types
+
 tsdCheck rG sG i j =
     let tsdSG = V.ifilter (\j _ -> j /= 1) sG
         tsdRG = V.ifilter (\i _ -> j /= 1) rG
@@ -230,11 +229,11 @@ zipVMwith :: (a -> b -> c) -> (VMatrix a -> VMatrix b -> VMatrix c)
 zipVMwith f = V.zipWith (V.zipWith f)
 
 --I'd like to neaten this to just taking a lattice and a reaction
-goodMappings patternLevel largeGraph source statearray rGraph rState = 
-    let targetD   = patternLevel
-        vertices  = breadthSearch largeGraph source targetD
-        subState  = extractSubstate statearray vertices
-        subGraph  = extractSubgraph largeGraph vertices
-        m         = makeM rState subState rGraph subGraph
-        rawMaps   = permute m
+goodMappings :: Lattice -> Reaction -> Int -> [[(Int,Int)]]
+goodMappings lattice reaction source = 
+    let targetD       = patternLevel reaction
+        vertices      = breadthSearch lattice source targetD
+        subLattice    = extractSubLattice lattice vertices
+        m             = makeM reaction lattice
+        rawMaps       = permute m
     in mappings vertices rawMaps
