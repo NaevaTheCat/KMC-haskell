@@ -6,6 +6,7 @@ module KMCgraph
     , breadthSearch
     , permute
     , goodMappings
+    , confirmMappings
     ) where
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
@@ -13,7 +14,8 @@ import qualified Data.List           as L
 import           GHC.Prim
 import qualified FIFO                as F
 import           KMCtypes
-import           KMClattice          as KL
+import qualified KMClattice          as KL
+import qualified KMCstates           as KS
 
 -- Type synonmys, maybe newtype works better
 type DistArr    = V.Vector (Infinitable Int)
@@ -83,6 +85,9 @@ ifBit nL@(n:nt) cA dA u q=
 --MAIN
 --Find all the permutation matricies of a given matrix m
 --Used for subgraph isomorphisms in Ullmann's algorithm
+--Returns a list of paths where the nth entry in a path is
+--the index of the entry in the subgraph that maps to
+--the nth member of the reaction graph
 permute :: VMatrix Int -> [[Int]]
 permute m = map reverse $ goForth [] emptyq (-1) [] m where
     emptyq = V.replicate (V.length m) []
@@ -182,9 +187,12 @@ extractSubLattice lat vs = Lattice subgraph subState where
     subgraph = V.fromList $ cleanNeighbours vL $ KL.getManyNeighbours lat vL
     subState = V.fromList $ KL.getManyState lat vL
 
-mappings :: V.Vector Int -> [[Int]] -> [[(Int,Int)]]
-mappings v rMs = map (zip vL) rMs where
-    vL = V.toList v
+-- This is effectively a lookup table of(iLarge,iReaction) 
+-- it's actually a list of lookup tables for the possible
+-- reactions.
+mappings :: V.Vector Int -> [[Int]] -> V.Vector [(Int,Int)]
+mappings v rMs = V.fromList $ map (flip zip [0..]) iLarge where
+    iLarge = map (map (v V.!)) rMs 
 
 cleanNeighbours :: [Int] -> [Neighbours] -> [Neighbours]
 cleanNeighbours vertices adjLists = map (L.intersect vertices) adjLists
@@ -200,7 +208,7 @@ checkDegrees rG sG i j =
     in case compare degSG degRG of
             LT -> 0
             _  -> 1
-
+-- Rows are entries in the reaction, columns are entries in the subgraph
 degMat :: AdjList -> AdjList -> VMatrix Int
 degMat aLrG aLsG = 
     V.generate rows (\i -> V.generate columns 
@@ -228,12 +236,40 @@ onlyOnes m1 m2 =  zipVMwith (*) m1 m2
 zipVMwith :: (a -> b -> c) -> (VMatrix a -> VMatrix b -> VMatrix c)
 zipVMwith f = V.zipWith (V.zipWith f)
 
---I'd like to neaten this to just taking a lattice and a reaction
-goodMappings :: Lattice -> Reaction -> Int -> [[(Int,Int)]]
+
+goodMappings :: Lattice -> Reaction -> Int -> V.Vector [(Int,Int)]
 goodMappings lattice reaction source = 
-    let targetD       = patternLevel reaction
+    let targetD       = (patternLevel reaction) V.! matchIndex
+        stateSource   = KL.getState lattice source
+        (Just matchIndex) = V.findIndex (== stateSource) (iState reaction)
         vertices      = breadthSearch lattice source targetD
         subLattice    = extractSubLattice lattice vertices
-        m             = makeM reaction lattice
+        m             = makeM reaction subLattice
         rawMaps       = permute m
-    in mappings vertices rawMaps
+        latSites      = map snd $ KS.entityLocations (lState lattice)
+        reacSites     = map snd $ KS.entityLocations (iState reaction)
+        validMaps     = confirmMappings latSites reacSites rawMaps
+    in mappings vertices validMaps
+
+       
+rToS :: [Int] -> [(Int,Int)] -> [Maybe Int]
+rToS r_sites lUL = map (flip lookup lUL) r_sites
+
+cleanInvalidMaps :: [Maybe Int] -> [Int]
+cleanInvalidMaps rs 
+    | (Nothing `elem` rs) == True = []
+    | otherwise = map (\(Just x) -> x) rs
+
+confirmMappings :: [[Int]] -> [[Int]] -> [[Int]] -> [[Int]]
+confirmMappings _ _ [] = []
+confirmMappings latSites reacSites (rM:rMs) =
+    let lUL = zip [0..] rM
+        rInTermsOfS = map (cleanInvalidMaps . flip rToS lUL) reacSites
+-- This mess is for reducing checking all the mappings to a single T/F
+        lowFold l = L.foldl' -- changed high to and I think that's right
+            (\acc a -> (|| acc).(== l).(L.intersect l) $ a) True
+        highFold list = L.foldl' 
+            (\acc x -> (&& acc).(flip lowFold list) $ x) False
+    in case (highFold latSites rInTermsOfS) of
+            True -> rM : confirmMappings latSites reacSites rMs
+            False -> confirmMappings latSites reacSites rMs

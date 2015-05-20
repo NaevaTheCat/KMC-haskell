@@ -22,18 +22,24 @@ getManyState lattice ss = map (getState lattice) ss
 
 -- can be used for one. Possibly better to use vector
 -- state transform would be better
-writeStates :: Lattice -> [(Int,State)] -> Lattice
-writeStates lattice states = Lattice (lGraph lattice) newState where
-                             newState   = statearray V.// states
-                             statearray = lState lattice
-                            
+-- probably want in place updating
+writeStates :: Lattice -> [(Int,State)] -> Double -> Lattice
+writeStates lattice states simTime = Lattice (lGraph lattice) newState newTime
+    where newState   = statearray V.// states
+          statearray = lState lattice
+          newTime = (tUpdated lattice) V.// (map (\(i,_) -> (i,simTime)) states)
+
 writeNeighbours :: Lattice -> [(Int,Neighbours)] -> Lattice
-writeNeighbours lattice neighbours = Lattice newGraph (lState lattice) where
+writeNeighbours lattice neighbours = Lattice newGraph (lState lattice) t where
                                      newGraph = adjlist V.// neighbours
                                      adjlist  = lGraph lattice
+                                     t = tUpdated lattice
 
 -- Erases each vertex in the list of i by removing their neighbours
 -- and trimming references to them from those neighbours
+-- keeps their index and state. maybe good? means searches become
+-- more intensive with time. Probably want to garbage collect every now
+-- and then
 eraseVertices :: Lattice -> [Int] -> Lattice
 eraseVertices lattice vs = 
     let n_of_vs = concat $ getManyNeighbours lattice vs 
