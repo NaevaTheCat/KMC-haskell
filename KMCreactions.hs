@@ -3,9 +3,9 @@
 --reactions
 
 module KMCreactions
-    (
+     
 
-    ) where
+      where
 
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
@@ -16,23 +16,24 @@ import KMCtypes
 import qualified Data.Heap           as H
 import qualified System.Random       as R
 
-nextReaction :: ReactionData -> Lattice -> Double -> Int -> (Lattice,Int,ReactionData,Double)
-nextReaction rData lattice simTime counter = do
-    peak <- H.viewMin (queue rData)
-    case peak of
+nextReaction :: ReactionData -> Lattice -> Double -> Int -> (Lattice, Int, ReactionData, Double)
+nextReaction rData lattice simTime counter = let
+    peak = H.viewMin (queue rData)
+    in case peak of
          Just (process,h') -> bleh rData lattice simTime counter process h'
          Nothing -> error "Change this to halting. There are no reactions"
 
-bleh rData lattice simTime counter process h' = do
-    rMap <- (V.! (mIndex process)).(V.! (rIndex process)) $ mappedPoints rData
-    ps <- map fst rMap -- points that will change during R
-    reaction <- (reactions rData) V.! (rIndex process)
-    (newLat,newCounter) <- performReaction counter reaction lattice rMap simTime
-    simTime' <- rTime process
-    rData_u <- L.foldl' (\acc x -> updateRData x lattice acc) rData ps
-    rData_h  <- ReactionData (reactions rData_u) (mappedPoints rData_u) (inverse rData_u) h' (pRNs rData_u)
-    rData_f <- L.foldl' (\acc x -> tryReactions x newLat acc simTime') rData_h ps
-    return (newLat, newCounter,rData_f, simTime')
+bleh :: ReactionData -> Lattice -> Double -> Int -> Process -> H.Heap Process -> (Lattice, Int, ReactionData, Double)
+bleh rData lattice simTime counter process h' = let
+    rMap = (V.! (mIndex process)).(V.! (rIndex process)) $ mappedPoints rData
+    ps = map fst rMap -- points that will change during R
+    reaction = (reactions rData) V.! (rIndex process)
+    (newLat,newCounter) = performReaction counter reaction lattice rMap simTime
+    simTime' = rTime process
+    rData_u = L.foldl' (\acc x -> updateRData x lattice acc) rData ps
+    rData_h  = ReactionData (reactions rData_u) (mappedPoints rData_u) (inverse rData_u) (sitesMapped rData_u) h' (pRNs rData_u)
+    rData_f = L.foldl' (\acc x -> tryReactions x newLat acc simTime') rData_h ps
+    in (newLat, newCounter,rData_f, simTime')
 
 -- I think I wrote this to purge maps after a point was updated
 updateRData :: Int -> Lattice -> ReactionData -> ReactionData
@@ -72,7 +73,7 @@ doMappings p lattice rData matchedRs simTime =
         mappedPs = mappedPoints rData
         cleanrI  = checkDuplicates rData rI_maps
         newMaps  = V.map (\(i,nM) -> (i,(mappedPs V.! i) V.++ nM)) cleanrI
-        mPs'     = V.update mappedPs newMaps
+        mPs'     = V.update mappedPs newMaps -- Possibly causing an exception
         sMped    = sitesMapped rData
         -- vector of list of lattice sites
         rI_sites = V.map (\(a,b) -> 

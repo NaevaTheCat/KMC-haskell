@@ -19,7 +19,7 @@ data Process = Process
     , rIndex :: Int
     , mIndex :: Int
     , tAssign :: Double
-    }
+    }deriving(Show)
 from4Tuple (a,b,c,t) = Process a b c t
 -- The process structure is for a heap. rTime gives priority
 -- rIndex is i of mappedPoints rData while mIndex is j of the
@@ -27,12 +27,12 @@ from4Tuple (a,b,c,t) = Process a b c t
 
 data ReactionData = ReactionData
     { reactions :: ReactionArray
-    , mappedPoints :: V.Vector (V.Vector Mapping) -- index i contains all the ways reaction i has been mapped to the lattice
+    , mappedPoints :: V.Vector (V.Vector [(Int,Int)]) -- index i contains all the ways reaction i has been mapped to the lattice
     , inverse :: V.Vector (Species Int, Type Int, [Int]) --list of reactions involving sites with species and type whatever
     , sitesMapped :: V.Vector [Int] -- index i contains a list of the reactions that are currently counting on a sites state.
     , queue :: H.Heap Process
     , pRNs  :: [Double]
-    }
+    }deriving(Show)
 data Reaction = Reaction
     { iGraph :: AdjList
     , fGraph :: AdjList
@@ -41,14 +41,14 @@ data Reaction = Reaction
     , patternLevel :: V.Vector Int -- pattern level wrt the ith thing in iState
     , rate   :: Double
     , newEnts :: [Int] -- labels of newentities between initial and final this is static
-    }
+    }deriving(Show)
 
 -- May want to add records e.g. Deposited
 data Lattice = Lattice
     { lGraph :: AdjList
     , lState :: StateArray
     , tUpdated :: V.Vector (Double)
-    }
+    } deriving(Show)
 data State = State
     { siteType :: Type Int
     , entity :: Int

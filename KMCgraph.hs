@@ -182,10 +182,12 @@ makeM reaction lattice =
         degreeCheck = degMat (iGraph reaction) (lGraph lattice)
 
 extractSubLattice :: Lattice -> V.Vector Int -> Lattice
-extractSubLattice lat vs = Lattice subgraph subState where
+extractSubLattice lat vs = Lattice subgraph subState dummyTimes where
     vL = V.toList vs
     subgraph = V.fromList $ cleanNeighbours vL $ KL.getManyNeighbours lat vL
     subState = V.fromList $ KL.getManyState lat vL
+    dummyTimes = V.replicate (V.length subgraph) 0.0
+    --WARNING CHANGED 15-05-25 with types update
 
 -- This is effectively a lookup table of(iLarge,iReaction) 
 -- it's actually a list of lookup tables for the possible
