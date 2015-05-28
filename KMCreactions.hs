@@ -16,15 +16,17 @@ import KMCtypes
 import qualified Data.Heap           as H
 import qualified System.Random       as R
 
-nextReaction :: ReactionData -> Lattice -> Double -> Int -> (Lattice, Int, ReactionData, Double)
+nextReaction :: ReactionData -> Lattice -> Double -> Int 
+    -> (Lattice, Int, ReactionData, Double)
 nextReaction rData lattice simTime counter = let
     peak = H.viewMin (queue rData)
     in case peak of
-         Just (process,h') -> bleh rData lattice simTime counter process h'
+         Just (process,h') -> proceed rData lattice simTime counter process h'
          Nothing -> error "Change this to halting. There are no reactions"
 
-bleh :: ReactionData -> Lattice -> Double -> Int -> Process -> H.Heap Process -> (Lattice, Int, ReactionData, Double)
-bleh rData lattice simTime counter process h' = let
+proceed :: ReactionData -> Lattice -> Double -> Int -> Process -> H.Heap Process 
+    -> (Lattice, Int, ReactionData, Double)
+proceed rData lattice simTime counter process h' = let
     rMap = (V.! (mIndex process)).(V.! (rIndex process)) $ mappedPoints rData
     ps = map fst rMap -- points that will change during R
     reaction = (reactions rData) V.! (rIndex process)
@@ -36,7 +38,8 @@ bleh rData lattice simTime counter process h' = let
     in (newLat, newCounter,rData_f, simTime')
 
 -- I think I wrote this to purge maps after a point was updated
-updateRData :: Int -> Lattice -> ReactionData -> ReactionData
+updateRData :: Int -> Lattice -> ReactionData 
+    -> ReactionData
 updateRData p lattice rData = 
     let dependantRs = (sitesMapped rData) V.! p
         mappingList = mappedPoints rData
@@ -46,19 +49,22 @@ updateRData p lattice rData =
         siteList'   = V.modify (\v -> MV.write v p []) (sitesMapped rData)
     in ReactionData (reactions rData) (newMList) (inverse rData) siteList' (queue rData) (pRNs rData)
 
-exclude :: Int -> V.Vector Mapping -> V.Vector Mapping
+exclude :: Int -> V.Vector Mapping 
+    -> V.Vector Mapping
 exclude p vMaps = V.filter (not.elem p. map fst) vMaps
 -- a point P has just changed. Find what reactions could maybe happen
 -- given the characteristics of P. Take the successful mappings
 -- and add them to the end of the appropriate record.
 -- For each of the lattice points involved in the mapping, record that
 -- this reaction is depending on those points.
-tryReactions :: Int -> Lattice -> ReactionData -> Double -> ReactionData
+tryReactions :: Int -> Lattice -> ReactionData -> Double 
+    -> ReactionData
 tryReactions p lattice rData simTime = 
     let pState = KL.getState lattice p
         (pSpec,pType) = (species pState, siteType pState)
         --can this be empty?
-        matchedRs = V.findIndices (\(a,b,_) -> (a==pSpec) && (b == pType)) $ inverse rData
+        matchedRs = V.findIndices 
+            (\(a,b,_) -> (a==pSpec) && (b == pType)) $ inverse rData
     in case V.null matchedRs of
            True -> rData
            _    -> doMappings p lattice rData matchedRs simTime
@@ -82,7 +88,7 @@ doMappings p lattice rData matchedRs simTime =
             V.fromList $ zip sites 
                 (map (L.nub . (i:) . (sMped V.!)) sites)) rI_sites
         sMped'   = V.update sMped newSites
-        (heap,pRNG') = enqueueR rI_maps rData simTime
+        (heap,pRNG') = enqueueR cleanrI rData simTime
         newQueue = H.union (queue rData) heap
     in ReactionData (reactions rData) mPs' (inverse rData) sMped' newQueue pRNG'
 
@@ -103,7 +109,7 @@ enqueueR :: V.Vector (Int, V.Vector Mapping) -> ReactionData -> Double
 enqueueR v rData simTime =
     let mIndicies = V.map (\(a,b) -> (a, map 
             ((+) . V.length . (V.! a) . mappedPoints $ rData) 
-                [0.. V.length b])) v
+                [0.. (V.length b - 1)])) v
         genL  = mapGen 0 (pRNs rData) rData simTime mIndicies
         heapL = map (H.fromList) $ map fst genL 
     in (L.foldl' (\acc x -> H.union acc x) H.empty heapL , snd.last $ genL)
@@ -116,7 +122,8 @@ mapGen n pRNG rData simTime v
     | otherwise = genResult : mapGen (n+1) (snd genResult) rData simTime v
     where genResult = genTimes pRNG (v V.! n) rData simTime
 
-genTimes :: [Double] -> (Int,[Int]) -> ReactionData -> Double-> ([Process],[Double])
+genTimes :: [Double] -> (Int,[Int]) -> ReactionData -> Double 
+    -> ([Process],[Double])
 genTimes pRNG (rI,ms) rData simTime = 
     let time x = - (log (1 - x)) / (rate . (V.! rI) . reactions $ rData)
         (rands,pRNG')  = genFloats pRNG $ length ms
@@ -135,15 +142,18 @@ performReaction counter reaction lattice mapping simTime =
     let (eMap, c') = entityMap counter reaction lattice mapping
         latStates = KL.getManyState lattice (map fst mapping)
         reacStates = V.toList $ fState reaction
-        newStates = map (\(a,b) -> stateUpdate eMap a b) (zip latStates reacStates)
+        newStates = map 
+            (\(a,b) -> stateUpdate eMap a b) (zip latStates reacStates)
     in (KL.writeStates lattice (zip (map fst mapping) newStates) simTime, c')
 
-stateUpdate eMap sL sR = State (siteType sL) (latE) (species sR) (dentate sR) where
-    latE = case (lookup (entity sR) eMap) of
+stateUpdate eMap sL sR = 
+    State (siteType sL) (latE) (species sR) (dentate sR) where
+        latE = case (lookup (entity sR) eMap) of
                 Just x -> x
                 _      -> error "entity couldn't be found"
 
-entityMap :: Int -> Reaction -> Lattice -> [(Int,Int)] -> ([(Int,Int)],Int)
+entityMap :: Int -> Reaction -> Lattice -> [(Int,Int)] 
+    -> ([(Int,Int)],Int)
 entityMap counter reaction lattice lrMap 
     | null newEs = (zip eR eL , counter)
     | otherwise  = ((zip eR eL) ++ rest, lastCount) where
