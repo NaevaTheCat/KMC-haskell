@@ -1,13 +1,14 @@
 --file KMC-haskell/graphFuncs.hs
 --module for performing operations on graphs
 module KMCgraph
-    (
-      Infinitable(..)
-    , breadthSearch
-    , permute
-    , goodMappings
-    , confirmMappings
-    ) where
+--    (
+--      Infinitable(..)
+--    , breadthSearch
+--    , permute
+--    , goodMappings
+--    , confirmMappings
+--    ) 
+      where
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
@@ -219,8 +220,8 @@ degMat aLrG aLsG =
             columns = V.length aLsG
 
 tsdCheck rG sG i j =
-    let tsdSG = V.ifilter (\j _ -> j /= 1) sG
-        tsdRG = V.ifilter (\i _ -> j /= 1) rG
+    let tsdSG = sG V.! j
+        tsdRG = rG V.! i
     in case tsdSG == tsdRG of
             True    -> 1
             False   -> 0
@@ -269,9 +270,9 @@ confirmMappings latSites reacSites (rM:rMs) =
         rInTermsOfS = map (cleanInvalidMaps . flip rToS lUL) reacSites
 -- This mess is for reducing checking all the mappings to a single T/F
         lowFold l = L.foldl' -- changed high to and I think that's right
-            (\acc a -> (|| acc).(== l).(L.intersect l) $ a) True
+            (\acc a -> (|| acc).(== l).(L.intersect l) $ a) False
         highFold list = L.foldl' 
-            (\acc x -> (&& acc).(flip lowFold list) $ x) False
+            (\acc x -> (&& acc).(flip lowFold list) $ x) True
     in case (highFold latSites rInTermsOfS) of
             True -> rM : confirmMappings latSites reacSites rMs
             False -> confirmMappings latSites reacSites rMs

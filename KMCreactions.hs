@@ -73,7 +73,7 @@ doMappings p lattice rData matchedRs simTime =
         mappedPs = mappedPoints rData
         cleanrI  = checkDuplicates rData rI_maps
         newMaps  = V.map (\(i,nM) -> (i,(mappedPs V.! i) V.++ nM)) cleanrI
-        mPs'     = V.update mappedPs newMaps -- Possibly causing an exception
+        mPs'     = V.update mappedPs newMaps
         sMped    = sitesMapped rData
         -- vector of list of lattice sites
         rI_sites = V.map (\(a,b) -> 

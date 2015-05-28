@@ -16,7 +16,7 @@ neverUPL  = V.replicate (V.length adjlistL) 0.0
 testLat :: Lattice
 testLat = Lattice adjlistL statearrL neverUPL
 
-testRdata = ReactionData rArry V.empty rInverse V.empty testqueue prns
+testRdata = ReactionData rArry (V.replicate 2 V.empty) rInverse (V.replicate 4 []) testqueue prns
 
 diffusion = Reaction (V.fromList [[1],[0]]) (V.fromList [[1],[0]]) rIstatesd rFstatesd (V.replicate 2 1) 1.0 []
 
