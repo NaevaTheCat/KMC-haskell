@@ -30,8 +30,8 @@ proceed rData lattice simTime counter process h' = let
     rMap = (V.! (mIndex process)).(V.! (rIndex process)) $ mappedPoints rData
     ps = map fst rMap -- points that will change during R
     reaction = (reactions rData) V.! (rIndex process)
-    (newLat,newCounter) = performReaction counter reaction lattice rMap simTime
-    simTime' = rTime process
+    (newLat,newCounter) = performReaction counter reaction lattice rMap simTime'
+    simTime' = (rTime process) + simTime
     rData_u = L.foldl' (\acc x -> updateRData x lattice acc) rData ps
     rData_h  = ReactionData (reactions rData_u) (mappedPoints rData_u) (inverse rData_u) (sitesMapped rData_u) h' (pRNs rData_u)
     rData_f = L.foldl' (\acc x -> tryReactions x newLat acc simTime') rData_h ps
@@ -125,7 +125,7 @@ mapGen n pRNG rData simTime v
 genTimes :: [Double] -> (Int,[Int]) -> ReactionData -> Double 
     -> ([Process],[Double])
 genTimes pRNG (rI,ms) rData simTime = 
-    let time x = - (log (1 - x)) / (rate . (V.! rI) . reactions $ rData)
+    let time x = simTime - (log (1 - x)) / (rate . (V.! rI) . reactions $ rData)
         (rands,pRNG')  = genFloats pRNG $ length ms
         procs  = map (\(t,m) -> (t,rI,m,simTime)) $ zip (map time rands) ms
     in  (map from4Tuple procs, pRNG')

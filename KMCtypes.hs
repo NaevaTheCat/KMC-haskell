@@ -48,6 +48,7 @@ data Lattice = Lattice
     { lGraph :: AdjList
     , lState :: StateArray
     , tUpdated :: V.Vector (Double)
+    , coords :: V.Vector Point
     } deriving(Show)
 data State = State
     { siteType :: Type Int
@@ -55,6 +56,12 @@ data State = State
     , species :: Species Int
     , dentate :: Int
     } deriving(Show)
+data Point = Point
+    { xCord :: Float
+    , yCord :: Float
+    , cell  :: Int
+    , sType :: Int
+    }deriving(Show)
 
 data Species a = Empty | Occupied a deriving(Show, Eq)
 data Type a    = Wild  | Site a deriving(Show)

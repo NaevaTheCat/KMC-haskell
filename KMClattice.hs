@@ -24,13 +24,13 @@ getManyState lattice ss = map (getState lattice) ss
 -- state transform would be better
 -- probably want in place updating
 writeStates :: Lattice -> [(Int,State)] -> Double -> Lattice
-writeStates lattice states simTime = Lattice (lGraph lattice) newState newTime
+writeStates lattice states simTime = Lattice (lGraph lattice) newState newTime (coords lattice)
     where newState   = statearray V.// states
           statearray = lState lattice
           newTime = (tUpdated lattice) V.// (map (\(i,_) -> (i,simTime)) states)
 
 writeNeighbours :: Lattice -> [(Int,Neighbours)] -> Lattice
-writeNeighbours lattice neighbours = Lattice newGraph (lState lattice) t where
+writeNeighbours lattice neighbours = Lattice newGraph (lState lattice) t (coords lattice) where
                                      newGraph = adjlist V.// neighbours
                                      adjlist  = lGraph lattice
                                      t = tUpdated lattice
@@ -50,3 +50,30 @@ eraseVertices lattice vs =
         newNeighbours = zip n_of_vs trimmed
         in writeNeighbours lattice $ (newNeighbours ++) . zip vs $ repeat []
 
+-- Working here, initialisation
+addToX n point = Point ((+ n) . xCord $ point) (yCord point) (cell point) (sType point)
+
+addToY n point = Point  (xCord point) ((+ n) . yCord $ point)(cell point) (sType point)
+
+simpleCubic x y =
+    let p = Point 0.0 0.0 0 0
+        xVec = V.generate x (\i -> addToX ((fromIntegral i) * 1.0) p)
+        xyVec = V.generate y (\i -> V.map (addToY ((fromIntegral i)*1.0)) xVec)
+    in V.concat $ map (xyVec V.!) [0..V.length xyVec]
+
+simpleCubicGraph x y = map (simpleCubeNeigh x y) [0..x*y -1]
+
+simpleCubeNeigh x y i = [nx1,nx2,ny1,ny2] where
+    position = (mod i x, div i x) -- col, row
+    nx1 = case fst position == 0 of
+               True -> i + x
+               False -> i - 1
+    nx2 = case fst position == x-1 of
+              True -> i - x
+              False -> i + 1
+    ny1 = case snd position == 0 of
+               True -> x*y - (x - i)
+               False -> i - x
+    ny2 = case snd position == y-1 of
+               True -> fst position
+               False -> i + x
