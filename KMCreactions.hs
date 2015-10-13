@@ -15,6 +15,7 @@ import qualified KMClattice          as KL
 import KMCtypes
 import qualified Data.Heap           as H
 import qualified System.Random       as R
+import qualified Data.Hashmap        as Map
 
 nextReaction :: ReactionData -> Lattice -> Double -> Int 
     -> (Lattice, Int, ReactionData, Double)
@@ -38,6 +39,8 @@ proceed rData lattice simTime counter process h' = let
     in (newLat, newCounter,rData_f, simTime')
 
 -- I think I wrote this to purge maps after a point was updated
+-- good job past rachael. Future rachael hates you. What does this
+-- actually do?
 updateRData :: Int -> Lattice -> ReactionData 
     -> ReactionData
 updateRData p lattice rData = 

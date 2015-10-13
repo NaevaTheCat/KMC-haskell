@@ -7,6 +7,7 @@ import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
 import qualified Data.Heap           as H
+import qualified Data.HashMap        as Map
 
 type AdjList    = V.Vector Neighbours
 type StateArray = V.Vector State
@@ -17,7 +18,6 @@ type Mapping = [(Int,Int)]
 data Process = Process
     { rTime :: Double
     , rIndex :: Int
-    , mIndex :: Int
     , tAssign :: Double
     }deriving(Show)
 from4Tuple (a,b,c,t) = Process a b c t
@@ -27,9 +27,11 @@ from4Tuple (a,b,c,t) = Process a b c t
 
 data ReactionData = ReactionData
     { reactions :: ReactionArray
-    , mappedPoints :: V.Vector (V.Vector [(Int,Int)]) -- index i contains all the ways reaction i has been mapped to the lattice
+    , mappedPoints :: Map.HashMap Double [(Int,Int)]
+    --V.Vector (V.Vector [(Int,Int)]) -- index i contains all the ways reaction i has been mapped to the lattice
     , inverse :: V.Vector (Species Int, Type Int, [Int]) --list of reactions involving sites with species and type whatever
-    , sitesMapped :: V.Vector [Int] -- index i contains a list of the reactions that are currently counting on a sites state.
+    , sitesMapped :: V.Vector [Double] -- i is keys of reactions depending on point i
+    --V.Vector [Int] -- index i contains a list of the reactions that are currently counting on a sites state.
     , queue :: H.Heap Process
     , pRNs  :: [Double]
     }deriving(Show)
