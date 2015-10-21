@@ -20,20 +20,24 @@ data Process = Process
     , rIndex :: Int
     , tAssign :: Double
     }deriving(Show)
-from4Tuple (a,b,c,t) = Process a b c t
+
+newtype Key = Key {keyValue :: Double}
+    deriving(Eq, Ord, Show)
+from4Tuple (a,b,c) = Process a b c 
 -- The process structure is for a heap. rTime gives priority
 -- rIndex is i of mappedPoints rData while mIndex is j of the
 -- same vector.
 
 data ReactionData = ReactionData
     { reactions :: ReactionArray
-    , mappedPoints :: Map.HashMap Double [(Int,Int)]
+    , mappedPoints :: Map.Map Key[(Int,Int)]
     --V.Vector (V.Vector [(Int,Int)]) -- index i contains all the ways reaction i has been mapped to the lattice
     , inverse :: V.Vector (Species Int, Type Int, [Int]) --list of reactions involving sites with species and type whatever
     , sitesMapped :: V.Vector [Double] -- i is keys of reactions depending on point i
     --V.Vector [Int] -- index i contains a list of the reactions that are currently counting on a sites state.
     , queue :: H.Heap Process
     , pRNs  :: [Double]
+    , tempMapStore :: V.Vector (V.Vector Mapping)
     }deriving(Show)
 data Reaction = Reaction
     { iGraph :: AdjList
