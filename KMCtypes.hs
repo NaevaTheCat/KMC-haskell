@@ -8,6 +8,7 @@ import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
 import qualified Data.Heap           as H
 import qualified Data.HashMap        as Map
+import Data.Hashable
 
 type AdjList    = V.Vector Neighbours
 type StateArray = V.Vector State
@@ -23,6 +24,9 @@ data Process = Process
 
 newtype Key = Key {keyValue :: Double}
     deriving(Eq, Ord, Show)
+instance Hashable Key where
+    hashWithSalt x (Key d) = hashWithSalt x d
+
 from4Tuple (a,b,c) = Process a b c 
 -- The process structure is for a heap. rTime gives priority
 -- rIndex is i of mappedPoints rData while mIndex is j of the
@@ -33,7 +37,7 @@ data ReactionData = ReactionData
     , mappedPoints :: Map.Map Key[(Int,Int)]
     --V.Vector (V.Vector [(Int,Int)]) -- index i contains all the ways reaction i has been mapped to the lattice
     , inverse :: V.Vector (Species Int, Type Int, [Int]) --list of reactions involving sites with species and type whatever
-    , sitesMapped :: V.Vector [Double] -- i is keys of reactions depending on point i
+    , sitesMapped :: V.Vector [Key] -- i is keys of reactions depending on point i
     --V.Vector [Int] -- index i contains a list of the reactions that are currently counting on a sites state.
     , queue :: H.Heap Process
     , pRNs  :: [Double]

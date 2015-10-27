@@ -28,13 +28,13 @@ nextReaction rData lattice simTime counter = let
 proceed :: ReactionData -> Lattice -> Double -> Int -> Process -> H.Heap Process 
     -> (Lattice, Int, ReactionData, Double)
 proceed rData lattice simTime counter process h' = let
-    rMap = maybe [] id $ Map.lookup (rTime process) $ mappedPoints rData --need to make sure the empty list here results in everything doing nothing for a step
+    rMap = maybe [] id $ Map.lookup (Key $ rTime process) $ mappedPoints rData --need to make sure the empty list here results in everything doing nothing for a step
     ps = map fst rMap -- points that will change during R
     reaction = (reactions rData) V.! (rIndex process)
     (newLat,newCounter) = performReaction counter reaction lattice rMap simTime'
-    simTime' = (rTime process) + simTime --Pretty sure rTime is T + timefor reaction already.
+    simTime' = (rTime process) 
     rData_u = L.foldl' (\acc x -> updateRData x lattice acc) rData ps
-    rData_h  = ReactionData (reactions rData_u) (mappedPoints rData_u) (inverse rData_u) (sitesMapped rData_u) h' (pRNs rData_u)
+    rData_h  = ReactionData (reactions rData_u) (mappedPoints rData_u) (inverse rData_u) (sitesMapped rData_u) h' (pRNs rData_u) (tempMapStore rData_u)
     rData_f = L.foldl' (\acc x -> tryReactions x newLat acc simTime') rData_h ps
     in (newLat, newCounter,rData_f, simTime')
 
@@ -78,29 +78,37 @@ doMappings p lattice rData matchedRs simTime =
         rI_maps  = V.zip matchedRs maps 
         hashmap  = mappedPoints rData
         mapStore = tempMapStore rData
-        cleanrI  = checkDuplicates mapStore rI_maps
+        cleanrI  = checkDuplicates mapStore rI_maps -- V(i,V M)
         newMapStore  = V.map (\(i,nM) -> (i,(mapStore V.! i) V.++ nM)) cleanrI
-            -- need the times to insert into the hashmap
         finalMapStore     = V.update mapStore newMapStore
         sMped    = sitesMapped rData
         -- vector of list of lattice sites
-        rI_sites = V.map (\(a,b) -> --feel like this needs to be on clean and changed anyway
-            (a, L.nub .map fst . concat . V.toList $ b)) cleanrI
-        newSites = V.concatMap (\(i,sites) -> 
-            V.fromList $ zip sites 
-                (map (L.nub . (i:) . (sMped V.!)) sites)) rI_sites
-        sMped'   = V.update sMped newSites --flaged for possible modification
-        --V.map V.length on cleanrI for correct format
+        rI_sites = V.map (\(_,v) -> V.map (map fst) v) cleanrI
+        sMped'   = key_site_pair rI_sites keyVector sMped
         (heap,pRNG',keyVector) = enqueueR (V.map (\(rI,ms) -> (rI,V.length ms))cleanrI) rData simTime
         newQueue = H.union (queue rData) heap
         newHashMap = hashMapInsert keyVector (V.map snd cleanrI) hashmap
     in ReactionData (reactions rData) newHashMap (inverse rData) sMped' newQueue pRNG' finalMapStore
 
+key_site_pair :: V.Vector (V.Vector [Int]) 
+    -> V.Vector (V.Vector Key) 
+    -> V.Vector [Key]
+    -> V.Vector [Key]
+key_site_pair vSite vKey sitesMap = 
+    let site_key = V.map (uncurry key_site_helper) $ V.zip vSite vKey
+    in  V.foldl' (\acc x -> V.accumulate (flip (:)) acc x) sitesMap site_key
+
+key_site_helper :: V.Vector [Int] -> V.Vector Key -> V.Vector (Int,Key)
+key_site_helper vI vK = 
+    let vvI = V.map V.fromList vI
+        v_ik =V.map (\(k,v) -> V.map (\i -> (i,k)) v) $ V.zip vK vvI
+    in V.foldl1' (V.++) v_ik
+
 hashMapInsert :: V.Vector (V.Vector Key)
-    -> V.Vector (V.Vector Mapping) -> M.HashMap Key Mapping
-    -> M.HashMap Key Mapping
+    -> V.Vector (V.Vector Mapping) -> Map.Map Key Mapping
+    -> Map.Map Key Mapping
 hashMapInsert kv mv hm = 
-    let step1 = V.map (V.zipWith M.insert) kv --converts kv to v(v a -> v f1)
+    let step1 = V.map (V.zipWith Map.insert) kv --converts kv to v(v a -> v f1)
         step2 = V.zipWith ($) step1 $ mv -- consumes mv and makes v(v f1)
         --ready for hashmap use folds to consume step2 pumping into the
         --initial hashmap v(v (M -> M))
@@ -123,11 +131,11 @@ enqueueR :: V.Vector (Int,Int) -> ReactionData -> Double
 enqueueR v rData simTime =
     let genL  = mapGen 0 (pRNs rData) rData simTime v
         heapL = map (H.fromList) $ map (\(x,_,_) -> x) genL 
-        keyVector = V.fromList $ map V.fromlist $ keyifier v $  map (\(_,x,_) -> x) genL
+        keyVector = V.fromList $ map V.fromList $ keyifier $  map (\(_,x,_) -> x) genL
     in (L.foldl' (\acc x -> H.union acc x) H.empty heapL , (\(_,_,x) -> x).last $ genL, keyVector)
 
-keyifier :: V.Vector (Int,Int) -> [[Double]] -> [[Key]] -- change so not required. No point in 2 part keys
-keyifier v times = map (\ri ts -> map (Key ri) ts) (map fst $ V.toList v) times
+keyifier :: [[Double]] -> [[Key]] -- change so not required. No point in 2 part keys
+keyifier times = map (map (Key)) times
 --Faster in reverse but slightly
 mapGen :: Int -> [Double] -> ReactionData -> Double -> V.Vector (Int,Int)
 --V.Vector (Int,[Int]) 
