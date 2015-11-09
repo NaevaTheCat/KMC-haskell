@@ -55,13 +55,15 @@ addToX n point = Point ((+ n) . xCord $ point) (yCord point) (cell point) (sType
 
 addToY n point = Point  (xCord point) ((+ n) . yCord $ point)(cell point) (sType point)
 
+simpleCubic :: Int -> Int -> V.Vector Point
 simpleCubic x y =
     let p = Point 0.0 0.0 0 0
         xVec = V.generate x (\i -> addToX ((fromIntegral i) * 1.0) p)
         xyVec = V.generate y (\i -> V.map (addToY ((fromIntegral i)*1.0)) xVec)
     in V.concat $ map (xyVec V.!) [0..V.length xyVec]
 
-simpleCubicGraph x y = map (simpleCubeNeigh x y) [0..x*y -1]
+simpleCubicGraph :: Int -> Int -> AdjList
+simpleCubicGraph x y = V.fromList $ map (simpleCubeNeigh x y) [0..x*y -1]
 
 simpleCubeNeigh x y i = [nx1,nx2,ny1,ny2] where
     position = (mod i x, div i x) -- col, row

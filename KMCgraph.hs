@@ -1,13 +1,13 @@
 --file KMC-haskell/graphFuncs.hs
 --module for performing operations on graphs
 module KMCgraph
---    (
---      Infinitable(..)
---    , breadthSearch
---    , permute
---    , goodMappings
---    , confirmMappings
---    ) 
+    (
+      Infinitable(..)
+    , breadthSearch
+    , permute
+    , goodMappings
+    , confirmMappings
+    ) 
       where
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV

@@ -3,9 +3,11 @@
 --reactions
 
 module KMCreactions
-     
-
-      where
+    ( nextReaction
+    , makeRInverse
+    , newGen
+    , tryReactions
+    ) where
 
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
