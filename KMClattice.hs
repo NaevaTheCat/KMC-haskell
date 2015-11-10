@@ -20,6 +20,15 @@ getManyNeighbours lattice vs = map (getNeighbours lattice) vs
 getManyState :: Lattice -> [Int] -> [State]
 getManyState lattice ss = map (getState lattice) ss
 
+percentSpecies :: Species Int -> Lattice -> Double
+percentSpecies s l = (count / total) * 100.0 where
+    count = fromIntegral $ V.foldl' (speciesCount s) 0 $ lState l
+    total = fromIntegral $ V.length $ lState l
+
+speciesCount :: Species Int -> Int -> State -> Int
+speciesCount orig c comp
+    | (species comp) == orig = c+1
+    | otherwise = c
 -- can be used for one. Possibly better to use vector
 -- state transform would be better
 -- probably want in place updating
