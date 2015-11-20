@@ -2,11 +2,15 @@ module KMCconfig where
 
 import KMCtypes
 import qualified Data.Vector as V
-import KMClattice as KL
-import Data.Hashmap as Map
+import qualified KMClattice as KL
+import qualified Data.HashMap as Map
+import qualified Data.Heap as H
 
 xdim = 10
 ydim = 10
+
+tEnd = 10.0
+tIncrement = 1.0
 
 pressureA = 0.3
 emptyState e = State (Site 0) e Empty 0
@@ -21,7 +25,7 @@ twoLinkedPoints = V.fromList [[1],[0]]
 lattice = Lattice
             (KL.simpleCubicGraph xdim ydim)
             (V.generate (xdim*ydim) emptyState)
-            (V.generate (xdim*ydim) 0.0)
+            (V.replicate (xdim*ydim) 0.0)
             (KL.simpleCubic xdim ydim)
 
 rData = ReactionData
