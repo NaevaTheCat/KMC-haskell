@@ -6,13 +6,13 @@ import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
 import           KMCtypes
-
+import Debug.Trace
 -- Get the ith state from a lattice
 getState :: Lattice -> Int -> State
-getState lattice i = (V.! i) . lState $ lattice
+getState lattice i =  (V.! i) . lState $ lattice
 -- Get the Neighbours of the ith vertex in a lattice
 getNeighbours :: Lattice -> Int -> Neighbours
-getNeighbours lattice i = (V.! i) . lGraph $ lattice
+getNeighbours lattice i =  (V.! i) . lGraph $ lattice
 -- fed a list of indexes retrieve the neighbours of these
 getManyNeighbours :: Lattice -> [Int] -> [Neighbours]
 getManyNeighbours lattice vs = map (getNeighbours lattice) vs
@@ -69,7 +69,7 @@ simpleCubic x y =
     let p = Point 0.0 0.0 0 0
         xVec = V.generate x (\i -> addToX ((fromIntegral i) * 1.0) p)
         xyVec = V.generate y (\i -> V.map (addToY ((fromIntegral i)*1.0)) xVec)
-    in V.concat $ map (xyVec V.!) [0..V.length xyVec]
+    in  V.concat $ map (xyVec V.!) [0..V.length xyVec - 1]
 
 simpleCubicGraph :: Int -> Int -> AdjList
 simpleCubicGraph x y = V.fromList $ map (simpleCubeNeigh x y) [0..x*y -1]
@@ -77,13 +77,13 @@ simpleCubicGraph x y = V.fromList $ map (simpleCubeNeigh x y) [0..x*y -1]
 simpleCubeNeigh x y i = [nx1,nx2,ny1,ny2] where
     position = (mod i x, div i x) -- col, row
     nx1 = case fst position == 0 of
-               True -> i + x
+               True -> i + (x - 1)
                False -> i - 1
     nx2 = case fst position == x-1 of
-              True -> i - x
+              True -> i - (x - 1)
               False -> i + 1
     ny1 = case snd position == 0 of
-               True -> x*y - (x - i)
+               True -> (x*y) - (x - i)
                False -> i - x
     ny2 = case snd position == y-1 of
                True -> fst position

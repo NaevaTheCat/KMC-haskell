@@ -18,6 +18,7 @@ import KMCtypes
 import qualified Data.Heap           as H
 import qualified System.Random       as R
 import qualified Data.HashMap        as Map
+import Debug.Trace
 
 nextReaction :: ReactionData -> Lattice -> Double -> Int 
     -> (Lattice, Int, ReactionData, Double)
@@ -32,7 +33,7 @@ proceed :: ReactionData -> Lattice -> Double -> Int -> Process -> H.Heap Process
 proceed rData lattice simTime counter process h' = let
     rMap = maybe [] id $ Map.lookup (Key $ rTime process) $ mappedPoints rData --need to make sure the empty list here results in everything doing nothing for a step
     ps = map fst rMap -- points that will change during R
-    reaction = (reactions rData) V.! (rIndex process)
+    reaction =  (reactions rData) V.! (rIndex process)
     (newLat,newCounter) = performReaction counter reaction lattice rMap simTime'
     simTime' = (rTime process) 
     rData_u = L.foldl' (\acc x -> updateRData x lattice acc) rData ps
@@ -47,7 +48,7 @@ proceed rData lattice simTime counter process h' = let
 updateRData :: Int -> Lattice -> ReactionData 
     -> ReactionData
 updateRData p lattice rData = 
-    let dependantRKeys = (sitesMapped rData) V.! p -- [Double] (keys)
+    let dependantRKeys =  (sitesMapped rData) V.! p -- [Double] (keys)
         hashmap = mappedPoints rData
         newMList = L.foldl'
             (\acc x -> Map.delete x acc) hashmap dependantRKeys
@@ -75,13 +76,14 @@ tryReactions p lattice rData simTime =
 doMappings :: Int -> Lattice -> ReactionData -> V.Vector Int -> Double 
     -> ReactionData
 doMappings p lattice rData matchedRs simTime = 
-    let rsToMap  = V.map (\x -> (reactions rData) V.! x) matchedRs
+    let rindicies =  V.map (\x -> (inverse rData) V.! x) matchedRs
+        rsToMap =  V.fromList $ V.foldl' (\acc x -> acc ++ x) [] $ V.map (\(_,_,rs) -> map ((reactions rData) V.!) rs) rindicies -- v [reaction]
         maps     = V.map (\x -> KG.goodMappings lattice x p) rsToMap
         rI_maps  = V.zip matchedRs maps 
         hashmap  = mappedPoints rData
         mapStore = tempMapStore rData
         cleanrI  = checkDuplicates mapStore rI_maps -- V(i,V M)
-        newMapStore  = V.map (\(i,nM) -> (i,(mapStore V.! i) V.++ nM)) cleanrI
+        newMapStore  =  V.map (\(i,nM) -> (i,(mapStore V.! i) V.++ nM)) cleanrI
         finalMapStore     = V.update mapStore newMapStore
         sMped    = sitesMapped rData
         -- vector of list of lattice sites
@@ -104,7 +106,7 @@ key_site_helper :: V.Vector [Int] -> V.Vector Key -> V.Vector (Int,Key)
 key_site_helper vI vK = 
     let vvI = V.map V.fromList vI
         v_ik =V.map (\(k,v) -> V.map (\i -> (i,k)) v) $ V.zip vK vvI
-    in V.foldl1' (V.++) v_ik
+    in V.foldl' (\acc x -> acc V.++ x) V.empty v_ik
 
 hashMapInsert :: V.Vector (V.Vector Key)
     -> V.Vector (V.Vector Mapping) -> Map.Map Key Mapping
@@ -119,7 +121,7 @@ hashMapInsert kv mv hm =
 checkDuplicates :: V.Vector (V.Vector Mapping) -> V.Vector (Int,V.Vector Mapping)
     -> V.Vector (Int,V.Vector Mapping)
 checkDuplicates tempStore v = let
-    oldMaps i = tempStore V.! i
+    oldMaps i =  tempStore V.! i
     in V.map (\(i,x) -> 
         (i,(V.filter 
             (\y -> (== Nothing) $ V.find (listsID y) (oldMaps i)) x))) v
@@ -145,12 +147,12 @@ mapGen :: Int -> [Double] -> ReactionData -> Double -> V.Vector (Int,Int)
 mapGen n pRNG rData simTime v
     | n == (V.length v) = []
     | otherwise = genResult : mapGen (n+1) ((\(_,_,x) -> x) genResult) rData simTime v
-    where genResult = genTimes pRNG (v V.! n) rData simTime
+    where genResult =  genTimes pRNG (v V.! n) rData simTime
 
 genTimes :: [Double] -> (Int,Int) -> ReactionData -> Double 
     -> ([Process],[Double],[Double]) -- middle is times, end is PRNS
 genTimes pRNG (rI,ms) rData simTime = 
-    let time x = simTime - (log (1 - x)) / (rate . (V.! rI) . reactions $ rData)
+    let time x =  simTime - (log (1 - x)) / (rate . (V.! rI) . reactions $ rData)
         (rands,pRNG')  = genFloats pRNG ms
         procs  = map (\t -> (t,rI,simTime)) $ map time rands
     in  (map from4Tuple procs,map time rands, pRNG')
@@ -187,9 +189,9 @@ entityMap counter reaction lattice lrMap
         eL = map (entity . KL.getState lattice . fst) lrMap
         eR = map (entity . getStateI  reaction . snd) lrMap
 
-getStateI reaction i = (V.! i) . iState $ reaction
+getStateI reaction i =  (V.! i) . iState $ reaction
 
-getStateF reaction i = (V.! i) . fState $ reaction
+getStateF reaction i =  (V.! i) . fState $ reaction
 
 --Expensive operation compares the entities in a reaction initially
 --and finally to locate a difference. Any new entities need to be

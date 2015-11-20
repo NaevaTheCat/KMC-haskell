@@ -12,32 +12,29 @@ import Data.Time
 import qualified Data.Vector as V
 import qualified Data.Heap as H
 import qualified Data.ByteString.Lazy as B
-import Debug.Trace
 
 main :: IO ()
 main = do
-    Prelude.putStrLn "foo"
-    let lattice = trace "import lat" C.lattice
+    let lattice = C.lattice
     let simTime = 0.0
     let counter = 0
-    let pRNG = trace "making gen" $ R.newGen 0 --temp seed for testing
-    let inverseR = trace "making inverse" $ R.makeRInverse $ reactions C.rData
-    let rData = trace "making rdata" $ ReactionData (reactions C.rData) (mappedPoints C.rData) inverseR (sitesMapped C.rData) (queue C.rData) pRNG (tempMapStore C.rData)
-    let rData' = trace "do the fold" $ L.foldl' (\acc x -> R.tryReactions x lattice acc simTime) rData [0.. (V.length $ lGraph lattice) -1]
-    trace "start recursion" $ recurseNext lattice counter rData' simTime 0.0
+    let pRNG =  R.newGen 0 --temp seed for testing
+    let inverseR =  R.makeRInverse $ reactions C.rData
+    let rData =  ReactionData (reactions C.rData) (mappedPoints C.rData) inverseR (sitesMapped C.rData) (queue C.rData) pRNG (tempMapStore C.rData)
+    let rData' =  L.foldl' (\acc x -> R.tryReactions x lattice acc simTime) rData [0.. (V.length $ lGraph lattice) -1]
+    recurseNext lattice counter rData' simTime 0.0
 
 recurseNext :: Lattice -> Int -> ReactionData -> Double -> Double -> IO ()
 recurseNext lattice counter rData simTime simTimeOld 
-    | peak == Nothing = putStrLn "aleph" >> writeOut lattice rData simTime
-    | simTime >= C.tEnd = putStrLn "Beth" >> writeOut lattice rData simTime
-    | (simTime - simTimeOld) > C.tIncrement = do 
-        putStrLn "Daleth"
+    | peak == Nothing =  writeOut lattice rData simTime
+    | simTime >= C.tEnd =  writeOut lattice rData simTime
+    | (floor (simTime/C.tIncrement) - floor (simTimeOld/C.tIncrement)) >= 1 = do 
         writeOut lattice rData simTime
         let (l',c',rD',sT') = R.nextReaction rData lattice simTime counter -- will this be strict?
         recurseNext l' c' rD' sT' simTime -- simTime proxying for old
     | otherwise = 
-        let (l',c',rD',sT') = trace "fuck?" $ R.nextReaction rData lattice simTime counter -- will this be strict?
-        in putStrLn "He" >> recurseNext l' c' rD' sT' simTime -- simTime proxying for old
+        let (l',c',rD',sT') =  R.nextReaction rData lattice simTime counter -- will this be strict?
+        in  recurseNext l' c' rD' sT' simTime -- simTime proxying for old
     where peak = H.viewMin $ queue rData
 
 writeOut :: Lattice -> ReactionData -> Double -> IO ()

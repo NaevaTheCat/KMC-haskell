@@ -17,6 +17,8 @@ import qualified FIFO                as F
 import           KMCtypes
 import qualified KMClattice          as KL
 import qualified KMCstates           as KS
+import Data.Maybe
+import Debug.Trace
 
 -- Type synonmys, maybe newtype works better
 type DistArr    = V.Vector (Infinitable Int)
@@ -104,7 +106,7 @@ goForth path queue depth successfulPaths m =
     in case compare newDepth $ (V.length m) -1 of
             GT -> let successfulPaths' = path : successfulPaths 
                   in  goNext (tail path) queue depth successfulPaths' m
-            _  -> goNext path newQueue newDepth successfulPaths m
+            _  ->  goNext path newQueue newDepth successfulPaths m
 
 --Is the index being considered unique to the sequence
 decide path@(p:pt) queue depth sPs m = 
@@ -128,7 +130,7 @@ goBack path queue depth sPs m =
              -1 -> sPs
              _  -> goNext (tail path) queue newDepth sPs m
 
-deQ queue depth = (e,q) where
+deQ queue depth =  (e,q) where
     (e,es)           = takeFrom (queue V.! depth)
     q                = writeQ queue depth es
     takeFrom []      = (Nothing, [])
@@ -150,13 +152,13 @@ mkDistArr adjList = V.replicate (V.length adjList) (Inf :: Infinitable Int)
 --Fetch neighbours of the ith entry
 
 checkColour :: ColourArr -> Int -> Colour
-checkColour colourArr i = colourArr V.! i
+checkColour colourArr i =  colourArr V.! i
 
 setColour :: ColourArr -> Int -> Colour -> ColourArr
 setColour colourArr i c= V.modify (\v -> MV.write v i c) colourArr 
 
 checkDist :: DistArr -> Int -> Infinitable Int
-checkDist distArr i = distArr V.! i
+checkDist distArr i =  distArr V.! i
 
 setDist :: DistArr -> Int -> Infinitable Int -> DistArr
 setDist distArr i d = V.modify (\v -> MV.write v i d) distArr
@@ -168,9 +170,9 @@ mapOnAll f matrix = V.map (V.map f) matrix
 
 -- destructive update on row i with f
 mapOnRow :: Int -> (a -> a) -> VMatrix a -> VMatrix a
-mapOnRow i f matrix = V.modify ((\sv v -> MV.write v i sv) $ V.map f $ matrix V.! i) matrix 
+mapOnRow i f matrix =  V.modify ((\sv v -> MV.write v i sv) $ V.map f $ matrix V.! i) matrix 
 
-getColumn j matrix = V.map (V.! j) matrix
+getColumn j matrix =  V.map (V.! j) matrix
 
 -- In place update of a Vector (FILO) at queue corresponding to depth
 writeQ queue depth qs = V.modify (\v -> MV.write v depth qs) queue
@@ -194,7 +196,7 @@ extractSubLattice lat vs = Lattice subgraph subState dummyTimes (coords lat) whe
 -- it's actually a list of lookup tables for the possible
 -- reactions.
 mappings :: V.Vector Int -> [[Int]] -> V.Vector [(Int,Int)]
-mappings v rMs = V.fromList $ map (flip zip [0..]) iLarge where
+mappings v rMs =  V.fromList $ map (flip zip [0..]) iLarge where
     iLarge = map (map (v V.!)) rMs 
 
 cleanNeighbours :: [Int] -> [Neighbours] -> [Neighbours]
@@ -209,8 +211,8 @@ checkDegrees rG sG i j =
     let degSG = length $ sG V.! j
         degRG = length $ rG V.! i
     in case compare degSG degRG of
-            LT -> 0
-            _  -> 1
+            LT ->  0
+            _  ->  1
 -- Rows are entries in the reaction, columns are entries in the subgraph
 degMat :: AdjList -> AdjList -> VMatrix Int
 degMat aLrG aLsG = 
@@ -223,8 +225,8 @@ tsdCheck rG sG i j =
     let tsdSG = sG V.! j
         tsdRG = rG V.! i
     in case tsdSG == tsdRG of
-            True    -> 1
-            False   -> 0
+            True    ->  1
+            False   ->  0
   
 tsdMat :: StateArray -> StateArray -> VMatrix Int
 tsdMat sArG sAsG = 
@@ -249,12 +251,38 @@ goodMappings lattice reaction source =
         subLattice    = extractSubLattice lattice vertices
         m             = makeM reaction subLattice
         rawMaps       = permute m
+        checkedMaps = pathCheck subLattice reaction vertices rawMaps
         latSites      = map snd $ KS.entityLocations (lState lattice)
         reacSites     = map snd $ KS.entityLocations (iState reaction)
-        validMaps     = confirmMappings latSites reacSites rawMaps
-    in mappings vertices validMaps
+        validMaps     = confirmMappings latSites reacSites checkedMaps
+    in  mappings vertices validMaps
 
-       
+-- Test to see if for a given map (Vr->Vl) there exists (Er->El)
+pathCheck l r vertices maps =
+    let verts = V.toList vertices
+        rNeighbours = V.toList $ iGraph r
+        neighbours = lGraph l
+        iL_iS_table = zip verts [0..] -- for converting neighbours in subgraph
+        subNeighbours = V.map (map (flip lookup iL_iS_table)) neighbours
+        -- V [Maybe Int]]
+        edgeMaps = map (map (subNeighbours V.!)) maps
+        iR_iS_table = map (flip zip [0..]) maps
+        maybeEdges x y = map (map ((=<<) (flip lookup x))) y
+        reactionEdges = map (map catMaybes) $ zipWith maybeEdges iR_iS_table edgeMaps -- contains neighbours in terms of R
+        test1 = map (testCondensor rNeighbours) reactionEdges 
+        bleh = zipWith testSuccessCheck test1 maps
+    in filter (not.null) bleh
+-- Need to make sure mapped points are connected. Also Oxygen returns valid maaps no idea why not being mapped at all. 
+subsetTest x y = map (\a -> map (a `subsetOf`) y) x
+
+testCondensor x y = L.and $ L.foldl' 
+    (\acc a -> zipWith (||) acc a) [False,False ..] $ subsetTest x y
+
+testSuccessCheck b v 
+    | b == True = v 
+    | otherwise = []
+
+xs `subsetOf` ys = null $ filter (not . (`elem` ys)) xs
 rToS :: [Int] -> [(Int,Int)] -> [Maybe Int]
 rToS r_sites lUL = map (flip lookup lUL) r_sites
 
