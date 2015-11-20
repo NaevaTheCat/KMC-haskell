@@ -22,6 +22,7 @@ main = do
     let inverseR =  R.makeRInverse $ reactions C.rData
     let rData =  ReactionData (reactions C.rData) (mappedPoints C.rData) inverseR (sitesMapped C.rData) (queue C.rData) pRNG (tempMapStore C.rData)
     let rData' =  L.foldl' (\acc x -> R.tryReactions x lattice acc simTime) rData [0.. (V.length $ lGraph lattice) -1]
+    putStrLn "initialised"
     recurseNext lattice counter rData' simTime 0.0
 
 recurseNext :: Lattice -> Int -> ReactionData -> Double -> Double -> IO ()

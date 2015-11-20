@@ -2,12 +2,12 @@
 --Module for performing operations involving
 --reactions
 
-module KMCreactions
-    ( nextReaction
-    , makeRInverse
-    , newGen
-    , tryReactions
-    ) where
+module KMCreactions where
+--    ( nextReaction
+--    , makeRInverse
+--    , newGen
+--    , tryReactions
+--    ) where
 
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
@@ -18,8 +18,7 @@ import KMCtypes
 import qualified Data.Heap           as H
 import qualified System.Random       as R
 import qualified Data.HashMap        as Map
-import Debug.Trace
-
+import qualified KMCconfig as C
 nextReaction :: ReactionData -> Lattice -> Double -> Int 
     -> (Lattice, Int, ReactionData, Double)
 nextReaction rData lattice simTime counter = let
@@ -79,7 +78,8 @@ doMappings p lattice rData matchedRs simTime =
     let rindicies =  V.map (\x -> (inverse rData) V.! x) matchedRs
         rsToMap =  V.fromList $ V.foldl' (\acc x -> acc ++ x) [] $ V.map (\(_,_,rs) -> map ((reactions rData) V.!) rs) rindicies -- v [reaction]
         maps     = V.map (\x -> KG.goodMappings lattice x p) rsToMap
-        rI_maps  = V.zip matchedRs maps 
+        blarghly = V.fromList $ V.foldl' (\acc (_,_,x) -> acc ++ x) [] rindicies 
+        rI_maps  = V.zip blarghly maps 
         hashmap  = mappedPoints rData
         mapStore = tempMapStore rData
         cleanrI  = checkDuplicates mapStore rI_maps -- V(i,V M)
