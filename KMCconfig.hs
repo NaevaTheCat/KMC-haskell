@@ -6,8 +6,8 @@ import qualified KMClattice as KL
 import qualified Data.HashMap as Map
 import qualified Data.Heap as H
 
-xdim = 100
-ydim = 100
+xdim = 50
+ydim = 50
 
 tEnd = 1.0
 tIncrement = 0.1

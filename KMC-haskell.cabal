@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 
 executable KMC-haskell
   main-is:             Main.hs
-  ghc-options:         -O2
+  ghc-options:         -O2 -rtsopts -fprof-auto
   other-modules:       FIFO
                        , KMCconfig
                        , KMCgraph
