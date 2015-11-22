@@ -185,7 +185,7 @@ makeM reaction lattice =
         degreeCheck = degMat (iGraph reaction) (lGraph lattice)
 
 extractSubLattice :: Lattice -> V.Vector Int -> Lattice
-extractSubLattice lat vs = Lattice subgraph subState dummyTimes (coords lat) where
+extractSubLattice lat vs = Lattice subgraph subState V.empty V.empty where
     vL = V.toList vs
     subgraph = V.fromList $ cleanNeighbours vL $ KL.getManyNeighbours lat vL
     subState = V.fromList $ KL.getManyState lat vL

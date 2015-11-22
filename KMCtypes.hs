@@ -8,7 +8,7 @@ import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
 import qualified Data.Heap           as H
-import qualified Data.HashMap        as Map
+import qualified Data.HashMap.Strict        as Map
 import Data.Hashable
 import Data.Aeson
 import Data.Aeson.Types
@@ -44,7 +44,7 @@ from4Tuple (a,b,c) = Process a b c
 
 data ReactionData = ReactionData
     { reactions :: ReactionArray
-    , mappedPoints :: Map.Map Key [(Int,Int)]
+    , mappedPoints :: Map.HashMap Key [(Int,Int)]
     --V.Vector (V.Vector [(Int,Int)]) -- index i contains all the ways reaction i has been mapped to the lattice
     , inverse :: V.Vector (Species Int, Type Int, [Int]) --list of reactions involving sites with species and type whatever
     , sitesMapped :: V.Vector [Key] -- i is keys of reactions depending on point i

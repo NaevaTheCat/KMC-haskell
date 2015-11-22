@@ -17,7 +17,7 @@ import qualified KMClattice          as KL
 import KMCtypes
 import qualified Data.Heap           as H
 import qualified System.Random       as R
-import qualified Data.HashMap        as Map
+import qualified Data.HashMap.Strict        as Map
 import qualified KMCconfig as C
 nextReaction :: ReactionData -> Lattice -> Double -> Int 
     -> (Lattice, Int, ReactionData, Double)
@@ -75,9 +75,9 @@ tryReactions p lattice rData simTime =
 doMappings :: Int -> Lattice -> ReactionData -> V.Vector Int -> Double 
     -> ReactionData
 doMappings p lattice rData matchedRs simTime = 
-    let rindicies =  V.map (\x -> (inverse rData) V.! x) matchedRs
-        rsToMap =  V.fromList $ V.foldl' (\acc x -> acc ++ x) [] $ V.map (\(_,_,rs) -> map ((reactions rData) V.!) rs) rindicies -- v [reaction]
-        maps     = V.map (\x -> KG.goodMappings lattice x p) rsToMap
+    let rindicies =  V.force (V.map (\x -> (inverse rData) V.! x) matchedRs)
+        rsToMap =  V.fromList $ V.foldl' (\acc x -> acc ++ x) [] $ V.force (V.map (\(_,_,rs) -> map ((reactions rData) V.!) rs) rindicies) -- v [reaction]
+        maps     = V.force (V.map (\x -> KG.goodMappings lattice x p) rsToMap)
         blarghly = V.fromList $ V.foldl' (\acc (_,_,x) -> acc ++ x) [] rindicies 
         rI_maps  = V.zip blarghly maps 
         hashmap  = mappedPoints rData
@@ -87,7 +87,7 @@ doMappings p lattice rData matchedRs simTime =
         finalMapStore     = V.update mapStore newMapStore
         sMped    = sitesMapped rData
         -- vector of list of lattice sites
-        rI_sites = V.map (\(_,v) -> V.map (map fst) v) cleanrI
+        rI_sites = V.force (V.map (\(_,v) -> V.map (map fst) v) cleanrI)
         sMped'   = key_site_pair rI_sites keyVector sMped
         (heap,pRNG',keyVector) = enqueueR (V.map (\(rI,ms) -> (rI,V.length ms))cleanrI) rData simTime
         newQueue = H.union (queue rData) heap
@@ -109,8 +109,8 @@ key_site_helper vI vK =
     in V.foldl' (\acc x -> acc V.++ x) V.empty v_ik
 
 hashMapInsert :: V.Vector (V.Vector Key)
-    -> V.Vector (V.Vector Mapping) -> Map.Map Key Mapping
-    -> Map.Map Key Mapping
+    -> V.Vector (V.Vector Mapping) -> Map.HashMap Key Mapping
+    -> Map.HashMap Key Mapping
 hashMapInsert kv mv hm = 
     let step1 = V.map (V.zipWith Map.insert) kv --converts kv to v(v a -> v f1)
         step2 = V.zipWith ($) step1 $ mv -- consumes mv and makes v(v f1)
@@ -122,9 +122,9 @@ checkDuplicates :: V.Vector (V.Vector Mapping) -> V.Vector (Int,V.Vector Mapping
     -> V.Vector (Int,V.Vector Mapping)
 checkDuplicates tempStore v = let
     oldMaps i =  tempStore V.! i
-    in V.map (\(i,x) -> 
+    in V.force (V.map (\(i,x) -> 
         (i,(V.filter 
-            (\y -> (== Nothing) $ V.find (listsID y) (oldMaps i)) x))) v
+            (\y -> (== Nothing) $ V.find (listsID y) (oldMaps i)) x))) v)
 
 
 listsID x y = L.null $ x L.\\ y    
@@ -228,5 +228,5 @@ newGen seed = R.randoms $ R.mkStdGen seed
 eraseTempMaps :: ReactionData -> ReactionData
 eraseTempMaps rdata =
     let tms = tempMapStore rdata
-        tms' = V.map (\v -> V.replicate (V.length v) []) tms
+        tms' = V.modify (\v -> MV.set v V.empty) tms
     in ReactionData (reactions rdata) (mappedPoints rdata) (inverse rdata) (sitesMapped rdata) (queue rdata) (pRNs rdata) tms'

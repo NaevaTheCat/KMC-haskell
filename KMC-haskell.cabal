@@ -26,6 +26,6 @@ executable KMC-haskell
                        , KMCstates
                        , KMCtypes
   other-extensions:    OverloadedStrings
-  build-depends:       base  , vector  , heaps  , random  , hashmap  , aeson  , text  , time  , bytestring  , hashable  , mtl  , ghc-prim  , vector-algorithms  , primitive  
+  build-depends:       base  , vector  , heaps  , random  , unordered-containers  , aeson  , text  , time  , bytestring  , hashable  , mtl  , ghc-prim  , vector-algorithms  , primitive  
   -- hs-source-dirs:      
   default-language:    Haskell2010

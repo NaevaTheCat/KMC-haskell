@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Main where
 
 import qualified KMCreactions as R
@@ -26,7 +28,7 @@ main = do
     recurseNext lattice counter rData' simTime 0.0
 
 recurseNext :: Lattice -> Int -> ReactionData -> Double -> Double -> IO ()
-recurseNext lattice counter rData simTime simTimeOld 
+recurseNext !lattice !counter !rData !simTime !simTimeOld 
     | peak == Nothing =  writeOut lattice rData simTime
     | simTime >= C.tEnd =  writeOut lattice rData simTime
     | (floor (simTime/C.tIncrement) - floor (simTimeOld/C.tIncrement)) >= 1 = do 
