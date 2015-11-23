@@ -1,10 +1,10 @@
-module KMCstates 
+module KMC.States 
     ( entityLocations
     ) where
 --basic module for manipulation of state arrays
 --nonspecific to reaction or lattice
 --
-import KMCtypes
+import KMC.Types
 import qualified Data.Vector as V
 import qualified Data.Vector.Algorithms.Intro as VA
 import qualified Data.Vector.Mutable as MV

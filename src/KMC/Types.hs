@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module KMCtypes 
+module KMC.Types 
     where
 --module containing types common to the simulation.
 --and some basic operations on them.

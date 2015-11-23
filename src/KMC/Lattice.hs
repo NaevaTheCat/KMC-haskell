@@ -1,11 +1,11 @@
-module KMClattice where
+module KMC.Lattice where
 -- Module for performing operations on the lattice
 -- distinct functions from reaction although names are
 -- shared
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
-import           KMCtypes
+import           KMC.Types
 import Debug.Trace
 -- Get the ith state from a lattice
 getState :: Lattice -> Int -> State

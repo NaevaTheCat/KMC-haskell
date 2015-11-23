@@ -2,10 +2,10 @@
 
 module Main where
 
-import qualified KMCreactions as R
-import KMCtypes
-import qualified KMClattice as KL
-import qualified KMCconfig as C
+import qualified KMC.Reactions as R
+import KMC.Types
+import qualified KMC.Lattice as KL
+import qualified KMC.Config as C
 import qualified Data.List as L
 import Data.Aeson
 import qualified Data.Text as T

@@ -1,8 +1,8 @@
-module KMCconfig where
+module KMC.Config where
 
-import KMCtypes
+import KMC.Types
 import qualified Data.Vector as V
-import qualified KMClattice as KL
+import qualified KMC.Lattice as KL
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Heap as H
 

@@ -1,6 +1,6 @@
 --file KMC-haskell/graphFuncs.hs
 --module for performing operations on graphs
-module KMCgraph
+module KMC.Graph
     (
       Infinitable(..)
     , breadthSearch
@@ -14,9 +14,9 @@ import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
 import           GHC.Prim
 import qualified FIFO                as F
-import           KMCtypes
-import qualified KMClattice          as KL
-import qualified KMCstates           as KS
+import           KMC.Types
+import qualified KMC.Lattice          as KL
+import qualified KMC.States           as KS
 import Data.Maybe
 import Debug.Trace
 

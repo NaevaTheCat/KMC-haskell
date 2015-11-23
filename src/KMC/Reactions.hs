@@ -2,23 +2,23 @@
 --Module for performing operations involving
 --reactions
 
-module KMCreactions where
---    ( nextReaction
---    , makeRInverse
---    , newGen
---    , tryReactions
---    ) where
+module KMC.Reactions 
+    ( nextReaction
+    , makeRInverse
+    , newGen
+    , tryReactions
+    ) where
 
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
 import qualified Data.List           as L
-import qualified KMCgraph            as KG
-import qualified KMClattice          as KL
-import KMCtypes
+import qualified KMC.Graph            as KG
+import qualified KMC.Lattice          as KL
+import KMC.Types
 import qualified Data.Heap           as H
 import qualified System.Random       as R
 import qualified Data.HashMap.Strict        as Map
-import qualified KMCconfig as C
+import qualified KMC.Config as C
 nextReaction :: ReactionData -> Lattice -> Double -> Int 
     -> (Lattice, Int, ReactionData, Double)
 nextReaction rData lattice simTime counter = let
