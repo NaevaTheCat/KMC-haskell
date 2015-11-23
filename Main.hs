@@ -14,7 +14,7 @@ import qualified Data.Heap as H
 import qualified Data.ByteString.Lazy as B
 import System.Environment (getArgs)
 import qualified System.Random as RNG
-
+{-# LANGUAGE BangPatterns #-}
 main :: IO ()
 main = do
     [pA] <- getArgs
@@ -31,7 +31,7 @@ main = do
     recurseNext lattice counter rData' simTime 0.0 pA
 
 recurseNext :: Lattice -> Int -> ReactionData -> Double -> Double -> String -> IO ()
-recurseNext lattice counter rData simTime simTimeOld pA
+recurseNext !lattice !counter !rData !simTime !simTimeOld !pA
     | peak == Nothing =  writeOut lattice rData simTime pA
     | simTime >= C.tEnd =  writeOut lattice rData simTime pA
     | (floor (simTime/C.tIncrement) - floor (simTimeOld/C.tIncrement)) >= 1 = do 

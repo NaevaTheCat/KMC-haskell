@@ -9,8 +9,8 @@ import qualified Data.Heap as H
 xdim = 10
 ydim = 10
 
-tEnd = 1.0
-tIncrement = 0.1
+tEnd = 10.0
+tIncrement = 1.0
 
 --pressureA = 0.55
 emptyState e = State (Site 0) e Empty 0
@@ -43,7 +43,7 @@ o_ads pA = Reaction
             (V.fromList [occState 0 vac, occState 1 vac])
             (V.fromList [occState 0 o, occState 1 o])
             (V.replicate 2 1)
-            (0.25*(1.0 - pA)*10)
+            ((1.0 - pA)*10/4)
             ([])
 co_ads pA = Reaction
             (V.replicate 1 [])
