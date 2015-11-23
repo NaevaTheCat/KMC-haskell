@@ -14,34 +14,39 @@ import Data.Time
 import qualified Data.Vector as V
 import qualified Data.Heap as H
 import qualified Data.ByteString.Lazy as B
-
+import System.Environment (getArgs)
+import qualified System.Random as RNG
+{-# LANGUAGE BangPatterns #-}
 main :: IO ()
 main = do
+    [pA] <- getArgs
+    seed <- RNG.randomIO
     let lattice = C.lattice
     let simTime = 0.0
     let counter = 0
-    let pRNG =  R.newGen 0 --temp seed for testing
-    let inverseR =  R.makeRInverse $ reactions C.rData
-    let rData =  ReactionData (reactions C.rData) (mappedPoints C.rData) inverseR (sitesMapped C.rData) (queue C.rData) pRNG (tempMapStore C.rData)
+    let pRNG =  R.newGen seed --temp seed for testing
+    let rDATA = C.rData (read pA :: Double)
+    let inverseR =  R.makeRInverse $ reactions rDATA
+    let rData =  ReactionData (reactions rDATA) (mappedPoints rDATA) inverseR (sitesMapped rDATA) (queue rDATA) pRNG (tempMapStore rDATA)
     let rData' =  L.foldl' (\acc x -> R.tryReactions x lattice acc simTime) rData [0.. (V.length $ lGraph lattice) -1]
     putStrLn "initialised"
-    recurseNext lattice counter rData' simTime 0.0
+    recurseNext lattice counter rData' simTime 0.0 pA
 
-recurseNext :: Lattice -> Int -> ReactionData -> Double -> Double -> IO ()
-recurseNext !lattice !counter !rData !simTime !simTimeOld 
-    | peak == Nothing =  writeOut lattice rData simTime
-    | simTime >= C.tEnd =  writeOut lattice rData simTime
+recurseNext :: Lattice -> Int -> ReactionData -> Double -> Double -> String -> IO ()
+recurseNext !lattice !counter !rData !simTime !simTimeOld !pA
+    | peak == Nothing =  writeOut lattice rData simTime pA
+    | simTime >= C.tEnd =  writeOut lattice rData simTime pA
     | (floor (simTime/C.tIncrement) - floor (simTimeOld/C.tIncrement)) >= 1 = do 
-        writeOut lattice rData simTime
+        writeOut lattice rData simTime pA
         let (l',c',rD',sT') = R.nextReaction rData lattice simTime counter -- will this be strict?
-        recurseNext l' c' rD' sT' simTime -- simTime proxying for old
+        recurseNext l' c' rD' sT' simTime pA -- simTime proxying for old
     | otherwise = 
         let (l',c',rD',sT') =  R.nextReaction rData lattice simTime counter -- will this be strict?
-        in  recurseNext l' c' rD' sT' simTime -- simTime proxying for old
+        in  recurseNext l' c' rD' sT' simTime pA -- simTime proxying for old
     where peak = H.viewMin $ queue rData
 
-writeOut :: Lattice -> ReactionData -> Double -> IO ()
-writeOut l rD sT = 
+writeOut :: Lattice -> ReactionData -> Double -> String -> IO ()
+writeOut l rD sT pA = 
     let ljson = encode l
 --        rDjson = encode rD
         spCounts = L.map (flip KL.percentSpecies l) speciesList
@@ -53,6 +58,7 @@ writeOut l rD sT =
         let simTimeString = show sT
         let fileName = "results/" ++ wallTimeString ++ "_" ++ simTimeString ++ ".txt"
         TIO.appendFile fileName $ pretty spCounts
+        TIO.appendFile fileName $ T.pack $ pA ++ "\n"
         B.appendFile fileName ljson
 --        B.appendFile fileName rDjson
 
