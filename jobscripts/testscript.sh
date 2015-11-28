@@ -17,7 +17,7 @@
 
 # Send email on abort, begin, and end
 #PBS -m abe
-#PSB -M rnoxley@gmail.com
+#PBS -M rnoxley@gmail.com
 
 ###############
 # Start the Job
@@ -27,4 +27,5 @@ jobdir=$HOME/projects/KMC-haskell
 stackdir=.stack-work/install/x86_64-linux-gmp4/lts-3.14/7.10.2/bin
 
 cd $jobdir
-$stackdir/KMC-Haskell PRESSURE XDIM YDIM
+
+$jobdir/$stackdir/KMC-haskell PRESSURE XDIM YDIM

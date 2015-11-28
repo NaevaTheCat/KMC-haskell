@@ -17,7 +17,7 @@
 
 # Send email on abort, begin, and end
 #PBS -m abe
-#PSB -M rnoxley@gmail.com
+#PBS -M Rachael.N.Oxley@uts.edu.au
 
 ###############
 # Start the Job

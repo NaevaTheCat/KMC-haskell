@@ -6,11 +6,11 @@ import qualified KMC.Lattice as KL
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Heap as H
 
-xdim = 100
-ydim = 100
+-- xdim = 300
+-- ydim = 300
 
 tEnd = 10.0
-tIncrement = 1.0
+tIncrement = 0.1
 
 --pressureA = 0.55
 emptyState e = State (Site 0) e Empty 0
@@ -22,13 +22,13 @@ wild = Wild
 
 twoLinkedPoints = V.fromList [[1],[0]]
 
-lattice = Lattice
+lattice xdim ydim = Lattice
             (KL.simpleCubicGraph xdim ydim)
             (V.generate (xdim*ydim) emptyState)
             (V.replicate (xdim*ydim) 0.0)
             (KL.simpleCubic xdim ydim)
 
-rData pA = ReactionData
+rData pA xdim ydim = ReactionData
             (V.fromList [o_ads pA, co_ads pA, o_co])
             (Map.empty)
             (V.empty)
