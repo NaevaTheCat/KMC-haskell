@@ -9,12 +9,12 @@ import qualified Data.Heap as H
 -- xdim = 300
 -- ydim = 300
 
-tEnd = 10.0
-tIncrement = 0.1
+tEnd = 20.0
+tIncrement = 1.0
 
 --pressureA = 0.55
 emptyState e = State (Site 0) e Empty 0
-occState e s = State Wild     e s     0
+occState e s = State (Site 0) e s     0
 co = Occupied 0
 o = Occupied 1
 vac = Empty
@@ -43,7 +43,7 @@ o_ads pA = Reaction
             (V.fromList [occState 0 vac, occState 1 vac])
             (V.fromList [occState 0 o, occState 1 o])
             (V.replicate 2 1)
-            ((1.0 - pA)*10/4)
+            ((1.0 - pA)*10/8)
             ([])
 co_ads pA = Reaction
             (V.replicate 1 [])
@@ -60,5 +60,5 @@ o_co = Reaction
             (V.fromList [occState 0 o, occState 1 co])
             (V.fromList [occState 0 vac, occState 1 vac])
             (V.replicate 2 1)
-            (0.25 * 10.0^5)
+            (0.125 * 10.0^5)
             ([])

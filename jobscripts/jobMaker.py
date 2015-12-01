@@ -48,8 +48,8 @@ def ranged():
         for j in xrange(0,xn):
             for k in xrange(0,yn):
 #when we get the formula                t, m = predictResources(p,x,y)
-		t = '00:40:00'
-		m = '100GB'
+		t = '05:00:00'
+		m = '250GB'
                 fn = modscript(p,x,y,t,m)
 		call(['qsub',fn])
                 if k != (yn - 1):
@@ -57,7 +57,7 @@ def ranged():
             if j != (xn - 1):
                 x = str(int(x)+xi)
         if i != (pn - 1):
-            p = str(float(p) + yi)
+            p = str(float(p) + pi)
     return
 
 

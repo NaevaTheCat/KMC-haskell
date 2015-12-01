@@ -13,7 +13,7 @@
 #PBS -l mem=MEMORYLIMIT
 #PBS -l walltime=HH:MM:00
 
-#PBS -q workq
+#PBS -q risky
 
 # Send email on abort, begin, and end
 #PBS -m abe
