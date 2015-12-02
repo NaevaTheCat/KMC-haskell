@@ -291,6 +291,7 @@ cleanInvalidMaps rs
     | (Nothing `elem` rs) == True = []
     | otherwise = map (\(Just x) -> x) rs
 
+-- I don't actually know what this does
 confirmMappings :: [[Int]] -> [[Int]] -> [[Int]] -> [[Int]]
 confirmMappings _ _ [] = []
 confirmMappings latSites reacSites (rM:rMs) =
